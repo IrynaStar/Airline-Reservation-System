@@ -22,7 +22,7 @@ namespace AirlineReservationSystem
             // Инициализируем элементы управления
             InitializeComponents();
 
-            // Вызываем метод для выполнения вашего кода
+            // Вызываем метод для выполнения кода
             RunFlightBookingSystem();
         }
 
@@ -39,7 +39,7 @@ namespace AirlineReservationSystem
             this.Controls.Add(textBox);
         }
 
-        // Метод для выполнения вашего кода
+        // Метод для выполнения кода
         private void RunFlightBookingSystem()
         {
             // Создаем экземпляр рейса
