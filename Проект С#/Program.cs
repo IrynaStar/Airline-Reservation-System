@@ -8,6 +8,9 @@ namespace AirlineReservationSystem
     class Program : Form
     {
         private TextBox textBox; // Элемент управления для вывода информации
+        private TextBox seatInput; // Элемент управления для ввода номера места
+        private Button bookButton; // Кнопка для бронирования места
+        private Flight flight1; // Экземпляр рейса
 
         // Конструктор формы
         public Program()
@@ -22,7 +25,10 @@ namespace AirlineReservationSystem
             // Инициализируем элементы управления
             InitializeComponents();
 
-            // Вызываем метод для выполнения кода
+            // Создаем экземпляр рейса
+            flight1 = new Flight("ABC123", 50);
+
+            // Вызываем метод для выполнения вашего кода
             RunFlightBookingSystem();
         }
 
@@ -35,20 +41,34 @@ namespace AirlineReservationSystem
             textBox.Dock = DockStyle.Fill;
             textBox.ReadOnly = true;
 
-            // Добавляем элемент управления на форму
+            // Создаем элемент управления TextBox для ввода номера места
+            seatInput = new TextBox();
+            seatInput.Width = 100;
+
+            // Создаем кнопку для бронирования места
+            bookButton = new Button();
+            bookButton.Text = "Book Seat";
+            bookButton.Click += BookButton_Click;
+
+            // Создаем панель для размещения элементов
+            FlowLayoutPanel panel = new FlowLayoutPanel();
+            panel.Dock = DockStyle.Top;
+            panel.Controls.Add(new Label() { Text = "Enter Seat Number:" });
+            panel.Controls.Add(seatInput);
+            panel.Controls.Add(bookButton);
+
+            // Добавляем элементы управления на форму
+            this.Controls.Add(panel);
             this.Controls.Add(textBox);
         }
 
         // Метод для выполнения кода
         private void RunFlightBookingSystem()
         {
-            // Создаем экземпляр рейса
-            Flight flight1 = new Flight("ABC123", 50);
-
-            // Бронируем место 10
+            // Бронируем место 10 (например, если бронь ставит себе компания на всякий случай)
             flight1.BookSeat(10);
 
-            // Выводим список доступных мест за вычетом забронированных
+            // Выводим список доступных мест за вычетом забронированных (из которых пользователь себе сам выберет место)
             DisplayAvailableSeats(flight1);
         }
 
@@ -71,6 +91,29 @@ namespace AirlineReservationSystem
 
             // Выводим текст на textBox
             textBox.Text = sb.ToString();
+        }
+
+        // Обработчик события нажатия кнопки бронирования места
+        private void BookButton_Click(object sender, EventArgs e)
+        {
+            // Получаем номер места из текстового поля
+            if (int.TryParse(seatInput.Text, out int seatNumber))
+            {
+                // Проверяем, что такое место существует на самолете
+                if (seatNumber >= 1 && seatNumber <= flight1.Seats.Count)
+                {
+                    flight1.BookSeat(seatNumber);
+                    DisplayAvailableSeats(flight1);
+                }
+                else
+                {
+                    MessageBox.Show("Invalid seat number. Please enter a valid seat number.");
+                }
+            }
+            else
+            {
+                MessageBox.Show("Invalid input. Please enter a valid seat number.");
+            }
         }
 
         // Определение класса Seat
