@@ -18,9 +18,13 @@ namespace AirlineReservationSystem
             // Устанавливаем название формы
             this.Text = "'Strat' Airline Reservation System";
 
-            // Загружаем и устанавливаем иконку
-            string iconFilePath = "C:\\Users\\user\\Desktop\\plane.ico"; // Путь к файлу с иконкой
-            this.Icon = new System.Drawing.Icon(iconFilePath);
+            // Получаем полный путь к иконке в ресурсах проекта
+            string iconPath = @"C:\Users\user\Source\Repos\IrynaStar\Airline-Reservation-System\Проект С#\Properties\Resources\plane.ico";
+
+            // Устанавливаем иконку формы
+            this.Icon = new System.Drawing.Icon(iconPath);
+
+
 
             // Инициализируем элементы управления
             InitializeComponents();
@@ -28,7 +32,7 @@ namespace AirlineReservationSystem
             // Создаем экземпляр рейса
             flight1 = new Flight("ABC123", 50);
 
-            // Вызываем метод для выполнения вашего кода
+            // Вызываем метод для выполнения кода
             RunFlightBookingSystem();
         }
 
@@ -50,16 +54,35 @@ namespace AirlineReservationSystem
             bookButton.Text = "Book Seat";
             bookButton.Click += BookButton_Click;
 
-            // Создаем панель для размещения элементов
-            FlowLayoutPanel panel = new FlowLayoutPanel();
-            panel.Dock = DockStyle.Top;
-            panel.Controls.Add(new Label() { Text = "Enter Seat Number:" });
-            panel.Controls.Add(seatInput);
-            panel.Controls.Add(bookButton);
+            // Создаем панель для размещения элементов в верхней части формы
+            Panel topPanel = new Panel();
+            topPanel.Dock = DockStyle.Top;
+            topPanel.Height = 40; // Задаем высоту панели
+            topPanel.Padding = new Padding(10); // Задаем отступы внутри панели
 
-            // Добавляем элементы управления на форму
-            this.Controls.Add(panel);
-            this.Controls.Add(textBox);
+            // Размещаем элементы внутри панели
+            Label labelSeatNumber = new Label();
+            labelSeatNumber.Text = "Enter Seat Number";
+            labelSeatNumber.AutoSize = true;
+            labelSeatNumber.Dock = DockStyle.Left;
+
+            seatInput.Dock = DockStyle.Left;
+
+            bookButton.Dock = DockStyle.Left;
+
+            topPanel.Controls.Add(labelSeatNumber);
+            topPanel.Controls.Add(seatInput);
+            topPanel.Controls.Add(bookButton);
+
+            // Создаем SplitContainer для размещения панели и текстового блока
+            SplitContainer splitContainer = new SplitContainer();
+            splitContainer.Dock = DockStyle.Fill;
+            splitContainer.Orientation = Orientation.Vertical;
+            splitContainer.Panel1.Controls.Add(topPanel); // Верхняя панель в первую панель SplitContainer
+            splitContainer.Panel2.Controls.Add(textBox); // TextBox во вторую панель SplitContainer
+
+            // Добавляем SplitContainer на форму
+            this.Controls.Add(splitContainer);
         }
 
         // Метод для выполнения кода
@@ -93,7 +116,7 @@ namespace AirlineReservationSystem
             textBox.Text = sb.ToString();
         }
 
-        // Обработчик события нажатия кнопки бронирования места
+        // Прописываем обработчик события нажатия кнопки бронирования места
         private void BookButton_Click(object sender, EventArgs e)
         {
             // Получаем номер места из текстового поля
@@ -102,19 +125,28 @@ namespace AirlineReservationSystem
                 // Проверяем, что такое место существует на самолете
                 if (seatNumber >= 1 && seatNumber <= flight1.Seats.Count)
                 {
+                    // Бронируем выбранное место
                     flight1.BookSeat(seatNumber);
+
+                    // Выводим обновленный список доступных мест
                     DisplayAvailableSeats(flight1);
+
+                    // Оформляем покупку билета
+                    MessageBox.Show($"Seat {seatNumber} booked successfully! Ticket purchase completed.");
                 }
                 else
                 {
+                    // Выводим сообщение об ошибке, если введен неверный номер места
                     MessageBox.Show("Invalid seat number. Please enter a valid seat number.");
                 }
             }
             else
             {
+                // Выводим сообщение об ошибке, если введено некорректное значение
                 MessageBox.Show("Invalid input. Please enter a valid seat number.");
             }
         }
+
 
         // Определение класса Seat
         public class Seat
