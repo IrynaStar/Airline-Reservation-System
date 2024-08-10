@@ -5,12 +5,167 @@ using System.Windows.Forms;
 
 namespace AirlineReservationSystem
 {
-    class Program : Form
+    // Определение интерфейсов
+
+    public interface ISeat
     {
-        private TextBox textBox; // Элемент управления для вывода информации
+        int SeatNumber { get; set; }
+        string Class { get; set; }
+        bool IsBooked { get; set; }
+    }
+
+    public interface IFlight
+    {
+        string FlightNumber { get; set; }
+        List<ISeat> Seats { get; set; }
+        void BookSeat(int seatNumber);
+        int TotalSeats { get; }
+        int BookedSeats { get; }
+        int AvailableSeats { get; }
+    }
+
+    public interface IBookingSystem
+    {
+        void BookSeat(int seatNumber);
+        void DisplayAvailableSeats();
+    }
+
+    public interface IUserInterface
+    {
+        void ShowMessage(string message);
+        void UpdateSeatDisplay(string seatInfo);
+    }
+
+    public interface IReservation
+    {
+        void ReserveSeat(IFlight flight, int seatNumber);
+    }
+
+    public interface ISeatManager
+    {
+        void BookSeat(IFlight flight, int seatNumber);
+        List<ISeat> GetAvailableSeats(IFlight flight);
+    }
+
+    public interface IFlightManager
+    {
+        IFlight CreateFlight(string flightNumber, int totalSeats);
+    }
+
+    public interface IMessageHandler
+    {
+        void ShowMessage(string message);
+    }
+
+    // Реализация класса Seat
+
+    public class Seat : ISeat
+    {
+        public int SeatNumber { get; set; }
+        public string Class { get; set; }
+        public bool IsBooked { get; set; }
+
+        public Seat(int seatNumber, string seatClass)
+        {
+            SeatNumber = seatNumber;
+            Class = seatClass;
+            IsBooked = false;
+        }
+    }
+
+    // Реализация класса Flight
+
+    public class Flight : IFlight
+    {
+        public string FlightNumber { get; set; }
+        public List<ISeat> Seats { get; set; }
+
+        public Flight(string flightNumber, int totalSeats)
+        {
+            FlightNumber = flightNumber;
+            Seats = new List<ISeat>();
+            InitializeSeats(totalSeats);
+        }
+
+        private void InitializeSeats(int totalSeats)
+        {
+            for (int i = 1; i <= totalSeats; i++)
+            {
+                string seatClass = i <= totalSeats / 2 ? "First Class" : "Standard";
+                Seats.Add(new Seat(i, seatClass));
+            }
+        }
+
+        public void BookSeat(int seatNumber)
+        {
+            ISeat seat = Seats.Find(s => s.SeatNumber == seatNumber);
+            if (seat != null && !seat.IsBooked)
+            {
+                seat.IsBooked = true;
+            }
+        }
+
+        public int TotalSeats => Seats.Count;
+        public int BookedSeats => Seats.FindAll(seat => seat.IsBooked).Count;
+        public int AvailableSeats => TotalSeats - BookedSeats;
+    }
+
+    // Реализация класса Reservation
+
+    public class Reservation : IReservation
+    {
+        public void ReserveSeat(IFlight flight, int seatNumber)
+        {
+            flight.BookSeat(seatNumber);
+        }
+    }
+
+    // Реализация класса SeatManager
+
+    public class SeatManager : ISeatManager
+    {
+        public void BookSeat(IFlight flight, int seatNumber)
+        {
+            flight.BookSeat(seatNumber);
+        }
+
+        public List<ISeat> GetAvailableSeats(IFlight flight)
+        {
+            return flight.Seats.FindAll(seat => !seat.IsBooked);
+        }
+    }
+
+    // Реализация класса FlightManager
+
+    public class FlightManager : IFlightManager
+    {
+        public IFlight CreateFlight(string flightNumber, int totalSeats)
+        {
+            return new Flight(flightNumber, totalSeats);
+        }
+    }
+
+    // Реализация класса MessageHandler
+
+    public class MessageHandler : IMessageHandler
+    {
+        public void ShowMessage(string message)
+        {
+            MessageBox.Show(message);
+        }
+    }
+
+    // Реализация класса Program, который также является формой
+
+    public class Program : Form, IUserInterface, IBookingSystem
+    {
+        private RichTextBox textBox; 
         private TextBox seatInput; // Элемент управления для ввода номера места
         private Button bookButton; // Кнопка для бронирования места
-        private Flight flight1; // Экземпляр рейса
+        private IFlight flight1; // Экземпляр рейса
+        private ISeatManager seatManager; // Менеджер мест
+        private IReservation reservation; // Система бронирования
+        private IMessageHandler messageHandler; // Обработчик сообщений
 
         // Конструктор формы
         public Program()
@@ -24,24 +179,32 @@ namespace AirlineReservationSystem
             // Устанавливаем иконку формы
             this.Icon = new System.Drawing.Icon(iconPath);
 
-
+            this.Size = new System.Drawing.Size(900, 600); // Ширина 900, высота 600
 
             // Инициализируем элементы управления
             InitializeComponents();
 
-            // Создаем экземпляр рейса
-            flight1 = new Flight("ABC123", 50);
+            // Создаем экземпляры менеджеров и обработчика сообщений
+            seatManager = new SeatManager();
+            reservation = new Reservation();
+            messageHandler = new MessageHandler();
 
-            // Вызываем метод для выполнения кода
-            RunFlightBookingSystem();
+            // Создаем экземпляр рейса
+            var flightManager = new FlightManager();
+            flight1 = flightManager.CreateFlight("ABC123", 50);
+
+            // Бронируем место 10 авиакомпанией
+            reservation.ReserveSeat(flight1, 10);
+
+            // Отображаем список доступных мест
+            DisplayAvailableSeats();
         }
 
         // Инициализация элементов управления формы
         private void InitializeComponents()
         {
-            // Создаем элемент управления TextBox
-            textBox = new TextBox();
-            textBox.Multiline = true;
+            // Создаем элемент управления RichTextBox
+            textBox = new RichTextBox();
             textBox.Dock = DockStyle.Fill;
             textBox.ReadOnly = true;
 
@@ -67,7 +230,6 @@ namespace AirlineReservationSystem
             labelSeatNumber.Dock = DockStyle.Left;
 
             seatInput.Dock = DockStyle.Left;
-
             bookButton.Dock = DockStyle.Left;
 
             topPanel.Controls.Add(labelSeatNumber);
@@ -79,24 +241,14 @@ namespace AirlineReservationSystem
             splitContainer.Dock = DockStyle.Fill;
             splitContainer.Orientation = Orientation.Vertical;
             splitContainer.Panel1.Controls.Add(topPanel); // Верхняя панель в первую панель SplitContainer
-            splitContainer.Panel2.Controls.Add(textBox); // TextBox во вторую панель SplitContainer
+            splitContainer.Panel2.Controls.Add(textBox); // RichTextBox во вторую панель SplitContainer
 
             // Добавляем SplitContainer на форму
             this.Controls.Add(splitContainer);
         }
 
-        // Метод для выполнения кода
-        private void RunFlightBookingSystem()
-        {
-            // Бронируем место 10 (например, если бронь ставит себе компания на всякий случай)
-            flight1.BookSeat(10);
-
-            // Выводим список доступных мест за вычетом забронированных (из которых пользователь себе сам выберет место)
-            DisplayAvailableSeats(flight1);
-        }
-
         // Метод для отображения доступных мест на форме
-        private void DisplayAvailableSeats(Flight flight)
+        public void DisplayAvailableSeats()
         {
             // Очищаем содержимое textBox
             textBox.Clear();
@@ -104,12 +256,19 @@ namespace AirlineReservationSystem
             // Формируем текст с информацией о доступных местах
             StringBuilder sb = new StringBuilder();
             DateTime currentDateTime = DateTime.Now;
-            sb.AppendLine($"\nAvailable seats for flight {flight.FlightNumber}");
+            sb.AppendLine($"\nAvailable seats for flight {flight1.FlightNumber}");
             sb.AppendLine($"\nas of current time: {currentDateTime}\n");
-            foreach (var seat in flight.Seats)
+
+            // Добавляем информацию о количестве мест
+            sb.AppendLine($"Total Seats: {flight1.TotalSeats}");
+            sb.AppendLine($"Booked Seats: {flight1.BookedSeats}");
+            sb.AppendLine($"Available Seats: {flight1.AvailableSeats}\n");
+
+            // Добавляем информацию о доступных местах
+            var availableSeats = seatManager.GetAvailableSeats(flight1);
+            foreach (var seat in availableSeats)
             {
-                if (!seat.IsBooked)
-                    sb.AppendLine($"Seat Number: {seat.SeatNumber}, Class: {seat.Class}");
+                sb.AppendLine($"Seat Number: {seat.SeatNumber}, Class: {seat.Class}");
             }
 
             // Выводим текст на textBox
@@ -123,80 +282,48 @@ namespace AirlineReservationSystem
             if (int.TryParse(seatInput.Text, out int seatNumber))
             {
                 // Проверяем, что такое место существует на самолете
-                if (seatNumber >= 1 && seatNumber <= flight1.Seats.Count)
+                if (seatNumber >= 1 && seatNumber <= flight1.TotalSeats)
                 {
                     // Бронируем выбранное место
-                    flight1.BookSeat(seatNumber);
+                    BookSeat(seatNumber);
 
                     // Выводим обновленный список доступных мест
-                    DisplayAvailableSeats(flight1);
+                    DisplayAvailableSeats();
 
                     // Оформляем покупку билета
-                    MessageBox.Show($"Seat {seatNumber} booked successfully! Ticket purchase completed.");
+                    ShowMessage($"Seat {seatNumber} booked successfully! Ticket purchase completed.");
                 }
                 else
                 {
                     // Выводим сообщение об ошибке, если введен неверный номер места
-                    MessageBox.Show("Invalid seat number. Please enter a valid seat number.");
+                    ShowMessage("Invalid seat number. Please enter a valid seat number.");
                 }
             }
             else
             {
                 // Выводим сообщение об ошибке, если введено некорректное значение
-                MessageBox.Show("Invalid input. Please enter a valid seat number.");
+                ShowMessage("Invalid input. Please enter a valid seat number.");
             }
         }
 
-
-        // Определение класса Seat
-        public class Seat
+        // Реализация методов интерфейсов
+        public void BookSeat(int seatNumber)
         {
-            public int SeatNumber { get; set; }
-            public string Class { get; set; }
-            public bool IsBooked { get; set; }
-
-            public Seat(int seatNumber, string seatClass)
-            {
-                SeatNumber = seatNumber;
-                Class = seatClass;
-                IsBooked = false;
-            }
+            seatManager.BookSeat(flight1, seatNumber);
         }
 
-        // Определение класса Flight
-        public class Flight
+        public void UpdateSeatDisplay(string seatInfo)
         {
-            public string FlightNumber { get; set; }
-            public List<Seat> Seats { get; set; }
+            textBox.Text = seatInfo;
+        }
 
-            public Flight(string flightNumber, int totalSeats)
-            {
-                FlightNumber = flightNumber;
-                Seats = new List<Seat>();
-                InitializeSeats(totalSeats);
-            }
-
-            private void InitializeSeats(int totalSeats)
-            {
-                for (int i = 1; i <= totalSeats; i++)
-                {
-                    string seatClass = i <= totalSeats / 2 ? "First Class" : "Standard";
-                    Seats.Add(new Seat(i, seatClass));
-                }
-            }
-
-            public void BookSeat(int seatNumber)
-            {
-                Seat seat = Seats.Find(s => s.SeatNumber == seatNumber);
-                if (seat != null && !seat.IsBooked)
-                {
-                    seat.IsBooked = true;
-                }
-            }
+        public void ShowMessage(string message)
+        {
+            messageHandler.ShowMessage(message);
         }
 
         // Основной метод программы
-        static void Main(string[] args)
+        static void Main()
         {
             // Запускаем приложение и отображаем форму
             Application.Run(new Program());
